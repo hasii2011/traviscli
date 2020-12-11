@@ -1,0 +1,7 @@
+.idea/
+__pycache__/
+.DS_Store
+/html/
+build/
+dist/
+/venv-pyenv-3.9.1-dev/
