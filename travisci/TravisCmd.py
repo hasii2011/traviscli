@@ -13,6 +13,8 @@ from pkg_resources import resource_filename
 
 from os import sep as osSep
 
+from travisci.Preferences import Preferences
+
 
 class TravisCmd:
 
@@ -29,6 +31,9 @@ class TravisCmd:
 
         self._setupSystemLogging()
         self.logger: Logger = getLogger(TravisCmd.MADE_UP_PRETTY_MAIN_NAME)
+
+        Preferences.determinePreferencesLocation()
+        self._preferences: Preferences = Preferences()
 
     def runCommand(self):
         self.logger.info(f'Running Command')
