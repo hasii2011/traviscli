@@ -8,7 +8,7 @@ from logging import config
 
 from json import load as jsonLoad
 
-
+from PyTravisCI import TravisCI
 from pkg_resources import resource_filename
 
 from os import sep as osSep
@@ -36,7 +36,15 @@ class TravisCmd:
         self._preferences: Preferences = Preferences()
 
     def runCommand(self):
-        self.logger.info(f'Running Command')
+
+        travisciApiToken: str = self._preferences.travisciApiToken
+        self.logger.info(f'Running Command with token: {travisciApiToken}')
+
+        travisCI: TravisCI = TravisCI(access_token=travisciApiToken)
+
+        # We get our very own account information.
+        me = travisCI.get_user()
+        self.logger.info(f'Running as {me=}')
 
     def _setupSystemLogging(self):
 

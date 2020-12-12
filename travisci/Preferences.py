@@ -50,6 +50,15 @@ class Preferences(Singleton):
         else:
             return Preferences.preferencesFileLocationAndName
 
+    @property
+    def travisciApiToken(self) -> str:
+        return self._config.get(Preferences.TRAVIS_CI_SECTION, Preferences.TRAVISCI_API_TOKEN_KEY)
+
+    @travisciApiToken.setter
+    def travisciApiToken(self, newValue: str):
+        self._config.set(Preferences.TRAVIS_CI_SECTION, Preferences.TRAVISCI_API_TOKEN_KEY, newValue)
+        self.__saveConfig()
+
     def _loadConfiguration(self):
         """
         Load preferences from configuration file
