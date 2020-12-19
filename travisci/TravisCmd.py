@@ -1,17 +1,30 @@
 
 
+from typing import cast
+
 import logging
 
 from logging import Logger
 from logging import getLogger
 from logging import config
 
-from json import load as jsonLoad
-
-from PyTravisCI import TravisCI
 from pkg_resources import resource_filename
 
+from json import load as jsonLoad
+
 from os import sep as osSep
+
+from PyTravisCI import TravisCI
+from PyTravisCI import defaults
+
+from PyTravisCI.resource_types.builds import Builds
+
+from PyTravisCI.resource_types.repositories import Repositories
+from PyTravisCI.resource_types.repository import Repository
+from PyTravisCI.resource_types.user import User
+
+import click
+
 
 from travisci.Preferences import Preferences
 
@@ -35,16 +48,59 @@ class TravisCmd:
         Preferences.determinePreferencesLocation()
         self._preferences: Preferences = Preferences()
 
+        self._buildCount:   int = 1
+        self._repoSlugName: str = ''
+
     def runCommand(self):
 
         travisciApiToken: str = self._preferences.travisciApiToken
-        self.logger.info(f'Running Command with token: {travisciApiToken}')
+        self.logger.debug(f'Running Command with token: {travisciApiToken}')
 
-        travisCI: TravisCI = TravisCI(access_token=travisciApiToken)
+        travisCI: TravisCI = TravisCI(access_token=travisciApiToken, access_point=defaults.access_points.PRIVATE)
 
         # We get our very own account information.
-        me = travisCI.get_user()
-        self.logger.info(f'Running as {me=}')
+        me: User = travisCI.get_user()
+
+        self.logger.info(f'Running as {me.name=} {me.login=}')
+
+        params = {'limit': self._buildCount}
+
+        repository: Repository = travisCI.get_repository(self._repoSlugName)
+        repoBuilds: Builds = repository.get_builds(params=params)
+
+        self.logger.info(f"{'Build ID':<10} {'Number':<10} {'State':<10} {'Slug':<100}")
+
+        for build in repoBuilds:
+            self.logger.info(f"{build.id:<10} {build.number:<10} {build.state:<10} {build.repository.slug:<100}")
+
+    @property
+    def buildCount(self) -> int:
+        return self._buildCount
+
+    @buildCount.setter
+    def buildCount(self, newValue: int):
+        self._buildCount = newValue
+
+    @property
+    def repoSlugName(self) -> str:
+        return self._repoSlugName
+
+    @repoSlugName.setter
+    def repoSlugName(self, newValue: str):
+        self._repoSlugName = newValue
+
+    def _listRepositories(self, travisCI):
+        repositories: Repositories = travisCI.get_repositories()
+        # Loop until there are no more pages to navigate.
+        while True:
+            for repository in repositories:
+                repository: Repository = cast(Repository, repository)
+                self.logger.info(f'{repository.name=} {repository.slug=}')
+
+            if repositories.has_next_page():
+                repositories = repositories.next_page()
+                continue
+            break
 
     def _setupSystemLogging(self):
 
@@ -76,11 +132,21 @@ class TravisCmd:
         return fqFileName
 
 
+@click.command()
+@click.option('-c', '--count', default=1, help='Number builds to return.')
+@click.option('-r', '--repo-slug', prompt='Repository slug Name', help='something thing like hasii2011/PyUt.')
+def main(count: int, repo_slug: str):
+
+    print(f'{count=} {repo_slug=}')
+    travisCmd: TravisCmd = TravisCmd()
+
+    travisCmd.buildCount  = count
+    travisCmd.repoSlugName = repo_slug
+    # Launch travisCmd
+    travisCmd.runCommand()
+
+
 if __name__ == "__main__":
 
     print(f"Starting {TravisCmd.MADE_UP_PRETTY_MAIN_NAME}")
-
-    travisCmd: TravisCmd = TravisCmd()
-
-    # Launch travisCmd
-    travisCmd.runCommand()
+    main()
