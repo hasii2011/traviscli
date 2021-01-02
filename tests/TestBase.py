@@ -1,14 +1,14 @@
 
-import json
-
 import logging
 import logging.config
+
+import json
 
 from unittest import TestCase
 
 from pkg_resources import resource_filename
 
-from org.pyut.preferences.PyutPreferences import PyutPreferences
+from travisci.Preferences import Preferences
 
 JSON_LOGGING_CONFIG_FILENAME: str = "testLoggingConfig.json"
 TEST_DIRECTORY:               str = 'tests'
@@ -17,7 +17,6 @@ TEST_DIRECTORY:               str = 'tests'
 class TestBase(TestCase):
 
     RESOURCES_PACKAGE_NAME:              str = 'tests.resources'
-    RESOURCES_TEST_CLASSES_PACKAGE_NAME: str = 'tests.testclass'
 
     """
     A base unit test class to initialize some logging stuff we need
@@ -26,7 +25,7 @@ class TestBase(TestCase):
     def setUpLogging(cls):
         """"""
 
-        PyutPreferences.determinePreferencesLocation()  # Side effect;  not a good move
+        Preferences.determinePreferencesLocation()  # Side effect;  not a good move
 
         loggingConfigFilename: str = cls.findLoggingConfig()
 

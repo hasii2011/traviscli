@@ -1,5 +1,5 @@
-setuptools~=51.0.0
-twine~=3.2.0
+setuptools~=51.1.1
+twine~=3.3.0
 wheel~=0.36.1
 click~=7.1.2
 PyTravisCI~=2.0.0

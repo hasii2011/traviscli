@@ -1,5 +1,4 @@
-
-
+from typing import TextIO
 from typing import cast
 
 import logging
@@ -66,12 +65,16 @@ class TravisCmd:
         params = {'limit': self._buildCount}
 
         repository: Repository = travisCI.get_repository(self._repoSlugName)
-        repoBuilds: Builds = repository.get_builds(params=params)
+        repoBuilds: Builds     = repository.get_builds(params=params)
 
-        self.logger.info(f"{'Build ID':<10} {'Number':<10} {'State':<10} {'Slug':<100}")
+        self.logger.debug(f"{'Build ID':<10} {'Number':<10} {'State':<10} {'Slug':<100}")
 
+        self._highestBuildNumber: int = 0
         for build in repoBuilds:
-            self.logger.info(f"{build.id:<10} {build.number:<10} {build.state:<10} {build.repository.slug:<100}")
+            self.logger.debug(f"{build.id:<10} {build.number:<10} {build.state:<10} {build.repository.slug:<100}")
+            if int(build.number) > self._highestBuildNumber:
+                self._highestBuildNumber = int(build.number)
+        self.logger.info(f'{self._highestBuildNumber=}')
 
     @property
     def buildCount(self) -> int:
@@ -88,6 +91,14 @@ class TravisCmd:
     @repoSlugName.setter
     def repoSlugName(self, newValue: str):
         self._repoSlugName = newValue
+
+    @property
+    def versionText(self) -> str:
+        return self._versionTxt
+
+    @versionText.setter
+    def versionText(self, newValue: str):
+        self._versionTxt = newValue
 
     def _listRepositories(self, travisCI):
         repositories: Repositories = travisCI.get_repositories()
@@ -133,15 +144,18 @@ class TravisCmd:
 
 
 @click.command()
-@click.option('-c', '--count', default=1, help='Number builds to return.')
-@click.option('-r', '--repo-slug', prompt='Repository slug Name', help='something thing like hasii2011/PyUt.')
-def main(count: int, repo_slug: str):
+@click.option('-c', '--count',     default=1,      help='Number builds to return.')
+@click.option('-r', '--repo-slug', required=True,  help='something thing like hasii2011/PyUt.')
+@click.option('-f', '--file',      default='travisci/resources/version.txt', type=click.File('r'),  help='Relative location of version text file')
+def main(count: int, repo_slug: str, file: TextIO):
 
     print(f'{count=} {repo_slug=}')
     travisCmd: TravisCmd = TravisCmd()
 
-    travisCmd.buildCount  = count
+    travisCmd.buildCount   = count
     travisCmd.repoSlugName = repo_slug
+    travisCmd.versionText  = file.read()
+
     # Launch travisCmd
     travisCmd.runCommand()
 
