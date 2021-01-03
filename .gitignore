@@ -5,3 +5,4 @@ __pycache__/
 build/
 dist/
 /venv-pyenv-3.9.1-dev/
+traviscli.egg-info/

@@ -19,6 +19,8 @@ class SemanticVersionError(Exception):
 
 class SemanticVersion:
     """
+    TODO:  This needs to be rationalized with the one in Pyut
+
     Inspired by https://github.com/keleshev/version
 
     A normal version number MUST take the form X.Y.Z where

@@ -29,11 +29,11 @@ from travisci.Preferences import Preferences
 from travisci.SemanticVersion import SemanticVersion
 
 
-class TravisCmd:
+class TravisCli:
 
     JSON_LOGGING_CONFIG_FILENAME: str = "loggingConfiguration.json"
 
-    MADE_UP_PRETTY_MAIN_NAME:     str = "TravisCmd"
+    MADE_UP_PRETTY_MAIN_NAME:     str = "TravisCli"
 
     RESOURCES_PACKAGE_NAME: str = 'travisci.resources'
     RESOURCES_PATH:         str = f'travisci{osSep}resources'
@@ -43,7 +43,7 @@ class TravisCmd:
     def __init__(self):
 
         self._setupSystemLogging()
-        self.logger: Logger = getLogger(TravisCmd.MADE_UP_PRETTY_MAIN_NAME)
+        self.logger: Logger = getLogger(TravisCli.MADE_UP_PRETTY_MAIN_NAME)
 
         Preferences.determinePreferencesLocation()
         self._preferences: Preferences = Preferences()
@@ -76,9 +76,13 @@ class TravisCmd:
         semanticVersion: SemanticVersion = SemanticVersion(readFD.read())
         readFD.close()
 
+        print(f'Old Version: {semanticVersion}')
+
         highestBuildNumber = f'+.{highestBuildNumber}'
         semanticBuildNbr = semanticVersion.toBuildNumber(highestBuildNumber)
         semanticVersion.build = semanticBuildNbr
+
+        print(f'New Version: {semanticVersion}')
 
         writeFD: TextIO = open(self._versionFile, "w")
 
@@ -124,7 +128,7 @@ class TravisCmd:
 
     def _setupSystemLogging(self):
 
-        configFilePath: str = self._retrieveResourcePath(TravisCmd.JSON_LOGGING_CONFIG_FILENAME)
+        configFilePath: str = self._retrieveResourcePath(TravisCli.JSON_LOGGING_CONFIG_FILENAME)
 
         with open(configFilePath, 'r') as loggingConfigurationFile:
             configurationDictionary = jsonLoad(loggingConfigurationFile)
@@ -137,17 +141,17 @@ class TravisCmd:
 
         # Use this method in Python 3.9
         # from importlib_resources import files
-        # configFilePath: str  = files('travisci.resources').joinpath(TravisCmd.JSON_LOGGING_CONFIG_FILENAME)
+        # configFilePath: str  = files('travisci.resources').joinpath(TravisCli.JSON_LOGGING_CONFIG_FILENAME)
 
         try:
-            fqFileName: str = resource_filename(TravisCmd.RESOURCES_PACKAGE_NAME, bareFileName)
+            fqFileName: str = resource_filename(TravisCli.RESOURCES_PACKAGE_NAME, bareFileName)
         except (ValueError, Exception):
             #
             # Maybe we are in an app
             #
             from os import environ
-            pathToResources: str = environ.get(f'{TravisCmd.RESOURCE_ENV_VAR}')
-            fqFileName:      str = f'{pathToResources}{osSep}{TravisCmd.RESOURCES_PATH}{osSep}{bareFileName}'
+            pathToResources: str = environ.get(f'{TravisCli.RESOURCE_ENV_VAR}')
+            fqFileName:      str = f'{pathToResources}{osSep}{TravisCli.RESOURCES_PATH}{osSep}{bareFileName}'
 
         return fqFileName
 
@@ -159,7 +163,7 @@ class TravisCmd:
 def main(count: int, repo_slug: str, file: TextIO):
 
     print(f'{count=} {repo_slug=}')
-    travisCmd: TravisCmd = TravisCmd()
+    travisCmd: TravisCli = TravisCli()
 
     travisCmd.buildCount   = count
     travisCmd.repoSlugName = repo_slug
@@ -171,5 +175,5 @@ def main(count: int, repo_slug: str, file: TextIO):
 
 if __name__ == "__main__":
 
-    print(f"Starting {TravisCmd.MADE_UP_PRETTY_MAIN_NAME}")
+    print(f"Starting {TravisCli.MADE_UP_PRETTY_MAIN_NAME}")
     main()

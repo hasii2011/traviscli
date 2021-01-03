@@ -17,4 +17,4 @@ find . -type f -name "*.log"        -delete
 find . -type f -name UnitTest.gml   -delete
 
 rm -rf .eggs
-rm -rf travisci_command.egg-info
+rm -rf traviscli.egg-info
