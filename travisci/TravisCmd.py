@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import TextIO
 from typing import cast
 
@@ -20,12 +21,12 @@ from PyTravisCI.resource_types.builds import Builds
 
 from PyTravisCI.resource_types.repositories import Repositories
 from PyTravisCI.resource_types.repository import Repository
-from PyTravisCI.resource_types.user import User
 
 import click
 
 
 from travisci.Preferences import Preferences
+from travisci.SemanticVersion import SemanticVersion
 
 
 class TravisCmd:
@@ -47,8 +48,9 @@ class TravisCmd:
         Preferences.determinePreferencesLocation()
         self._preferences: Preferences = Preferences()
 
-        self._buildCount:   int = 1
-        self._repoSlugName: str = ''
+        self._buildCount:   int    = 1
+        self._repoSlugName: str    = ''
+        self._versionFile:  Path = cast(Path, None)
 
     def runCommand(self):
 
@@ -57,24 +59,31 @@ class TravisCmd:
 
         travisCI: TravisCI = TravisCI(access_token=travisciApiToken, access_point=defaults.access_points.PRIVATE)
 
-        # We get our very own account information.
-        me: User = travisCI.get_user()
-
-        self.logger.info(f'Running as {me.name=} {me.login=}')
-
         params = {'limit': self._buildCount}
 
         repository: Repository = travisCI.get_repository(self._repoSlugName)
         repoBuilds: Builds     = repository.get_builds(params=params)
 
-        self.logger.debug(f"{'Build ID':<10} {'Number':<10} {'State':<10} {'Slug':<100}")
-
-        self._highestBuildNumber: int = 0
+        highestBuildNumber: str = '0'
         for build in repoBuilds:
-            self.logger.debug(f"{build.id:<10} {build.number:<10} {build.state:<10} {build.repository.slug:<100}")
-            if int(build.number) > self._highestBuildNumber:
-                self._highestBuildNumber = int(build.number)
-        self.logger.info(f'{self._highestBuildNumber=}')
+
+            if int(build.number) > int(highestBuildNumber):
+                highestBuildNumber = build.number
+
+        self.logger.info(f'{highestBuildNumber=}')
+
+        readFD:          TextIO          = open(self._versionFile, "r")
+        semanticVersion: SemanticVersion = SemanticVersion(readFD.read())
+        readFD.close()
+
+        highestBuildNumber = f'+.{highestBuildNumber}'
+        semanticBuildNbr = semanticVersion.toBuildNumber(highestBuildNumber)
+        semanticVersion.build = semanticBuildNbr
+
+        writeFD: TextIO = open(self._versionFile, "w")
+
+        writeFD.write(semanticVersion.__str__())
+        writeFD.close()
 
     @property
     def buildCount(self) -> int:
@@ -93,12 +102,12 @@ class TravisCmd:
         self._repoSlugName = newValue
 
     @property
-    def versionText(self) -> str:
-        return self._versionTxt
+    def versionFile(self) -> Path:
+        return self._versionFile
 
-    @versionText.setter
-    def versionText(self, newValue: str):
-        self._versionTxt = newValue
+    @versionFile.setter
+    def versionFile(self, file: Path):
+        self._versionFile = file
 
     def _listRepositories(self, travisCI):
         repositories: Repositories = travisCI.get_repositories()
@@ -146,7 +155,7 @@ class TravisCmd:
 @click.command()
 @click.option('-c', '--count',     default=1,      help='Number builds to return.')
 @click.option('-r', '--repo-slug', required=True,  help='something thing like hasii2011/PyUt.')
-@click.option('-f', '--file',      default='travisci/resources/version.txt', type=click.File('r'),  help='Relative location of version text file')
+@click.option('-f', '--file',      default='travisci/resources/version.txt', type=click.Path(exists=True),  help='Relative location of version text file')
 def main(count: int, repo_slug: str, file: TextIO):
 
     print(f'{count=} {repo_slug=}')
@@ -154,7 +163,7 @@ def main(count: int, repo_slug: str, file: TextIO):
 
     travisCmd.buildCount   = count
     travisCmd.repoSlugName = repo_slug
-    travisCmd.versionText  = file.read()
+    travisCmd.versionFile  = file
 
     # Launch travisCmd
     travisCmd.runCommand()
