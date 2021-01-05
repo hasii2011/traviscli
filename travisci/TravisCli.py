@@ -17,15 +17,25 @@ from os import sep as osSep
 from PyTravisCI import TravisCI
 from PyTravisCI import defaults
 
+from click import Context
+from click import command
+from click import option
+from click import version_option
+from click import get_current_context
+from click import secho
+from click import open_file
+from click import style
+from click import INT
+from click import Path as clickPath
+from click import clear as clickClear
+from click import echo as clickEcho
+
 from PyTravisCI.resource_types.builds import Builds
-
-from PyTravisCI.resource_types.repositories import Repositories
 from PyTravisCI.resource_types.repository import Repository
-
-import click
 
 from travisci.Preferences import Preferences
 from travisci.SemanticVersion import SemanticVersion
+from travisci.exceptions.UnsupportedOperation import UnsupportedOperation
 
 
 class TravisCli:
@@ -48,24 +58,22 @@ class TravisCli:
         self._buildCount:   int    = 1
         self._repoSlugName: str    = ''
         self._versionFile:  Path = cast(Path, None)
+        self._majorVersion = ''
+        self._minorVersion = ''
+        self._patchVersion = ''
 
     def runCommand(self):
 
-        travisciApiToken: str = self._preferences.travisciApiToken
-        self.logger.debug(f'Running Command with token: {travisciApiToken}')
+        repoBuilds:      Builds          = self._getTravisBuilds()
+        semanticVersion: SemanticVersion = self.__getCurrentVersion()
 
-        travisCI: TravisCI = TravisCI(access_token=travisciApiToken, access_point=defaults.access_points.PRIVATE)
+        semanticVersion = self._updateVersionNumber(semanticVersion=semanticVersion)
 
-        params = {'limit': self._buildCount}
-
-        repository: Repository = travisCI.get_repository(self._repoSlugName)
-        repoBuilds: Builds     = repository.get_builds(params=params)
-
-        self._updateBuildNumber(repoBuilds)
+        self._updateBuildNumber(semanticVersion=semanticVersion, repoBuilds=repoBuilds)
 
     @property
     def buildCount(self) -> int:
-        return self._buildCount
+        raise UnsupportedOperation('CLI properties are write-only')
 
     @buildCount.setter
     def buildCount(self, newValue: int):
@@ -73,7 +81,7 @@ class TravisCli:
 
     @property
     def repoSlugName(self) -> str:
-        return self._repoSlugName
+        raise UnsupportedOperation('CLI properties are write-only')
 
     @repoSlugName.setter
     def repoSlugName(self, newValue: str):
@@ -81,33 +89,87 @@ class TravisCli:
 
     @property
     def versionFile(self) -> Path:
-        return self._versionFile
+        raise UnsupportedOperation('CLI properties are write-only')
 
     @versionFile.setter
     def versionFile(self, file: Path):
         self._versionFile = file
 
-    def _updateBuildNumber(self, repoBuilds: Builds):
+    @property
+    def majorVersion(self) -> str:
+        raise UnsupportedOperation('CLI properties are write-only')
 
-        highestBuildNumber: str             = self.__getHighestBuildNumber(repoBuilds)
-        semanticVersion:    SemanticVersion = self.__getCurrentVersion()
+    @majorVersion.setter
+    def majorVersion(self, newVersion: str):
+        self._majorVersion = newVersion
+
+    @property
+    def minorVersion(self) -> str:
+        raise UnsupportedOperation('CLI properties are write-only')
+
+    @minorVersion.setter
+    def minorVersion(self, newVersion: str):
+        self._minorVersion = newVersion
+
+    @property
+    def patchVersion(self) -> str:
+        raise UnsupportedOperation('CLI properties are write-only')
+
+    @patchVersion.setter
+    def patchVersion(self, newVersion: str):
+        self._patchVersion = newVersion
+
+    def _getTravisBuilds(self) -> Builds:
+        """
+        Get a set of builds from Travis CI for the selected repository
+
+        Returns:  The Travis builds
+        """
+        travisciApiToken: str = self._preferences.travisciApiToken
+        self.logger.debug(f'Running Command with token: {travisciApiToken}')
+
+        travisCI: TravisCI = TravisCI(access_token=travisciApiToken, access_point=defaults.access_points.PRIVATE)
+
+        params = {'limit': self._buildCount}
+        repository: Repository = travisCI.get_repository(self._repoSlugName)
+        travisBuilds: Builds = repository.get_builds(params=params)
+
+        return travisBuilds
+
+    def _updateVersionNumber(self, semanticVersion: SemanticVersion) -> SemanticVersion:
+        """
+        Only one of the 3 numbers is not None
+        If the minor version is updated then patch version goes to zero
+        if the major version is updated then both the minor and patch version go to zero
+
+        Args:
+            semanticVersion:  The version the update
+
+        Returns:
+
+        """
+
+        if self._patchVersion is not None:
+            semanticVersion.patch = self._patchVersion
+        elif self._minorVersion is not None:
+            semanticVersion.minor = self._minorVersion
+            semanticVersion.patch = 0
+        elif self._majorVersion is not None:
+            semanticVersion.major = self._majorVersion
+            semanticVersion.minor = 0
+            semanticVersion.patch = 0
+
+        return semanticVersion
+
+    def _updateBuildNumber(self, semanticVersion: SemanticVersion, repoBuilds: Builds):
+
+        highestBuildNumber: str = self.__getHighestBuildNumber(repoBuilds)
 
         highestBuildNumber = f'+.{highestBuildNumber}'      # Normalize it
 
-        self.__updateVersionFile(highestBuildNumber, semanticVersion)
+        semanticVersion = self.__updateVersionFile(highestBuildNumber, semanticVersion)
 
-    def _listRepositories(self, travisCI):
-        repositories: Repositories = travisCI.get_repositories()
-        # Loop until there are no more pages to navigate.
-        while True:
-            for repository in repositories:
-                repository: Repository = cast(Repository, repository)
-                self.logger.info(f'{repository.name=} {repository.slug=}')
-
-            if repositories.has_next_page():
-                repositories = repositories.next_page()
-                continue
-            break
+        return semanticVersion
 
     def _setupSystemLogging(self):
 
@@ -164,15 +226,15 @@ class TravisCli:
 
         Returns:  The semantic version object that represents the current version stored in the text file
         """
-        readDescriptor:  TextIO          = click.open_file(self._versionFile, mode='r')
+        readDescriptor:  TextIO          = open_file(self._versionFile, mode='r')
         semanticVersion: SemanticVersion = SemanticVersion(readDescriptor.read())
         readDescriptor.close()
 
-        click.secho(f'Old Version: {semanticVersion}')
+        secho(f'Old Version: {semanticVersion}')
 
         return semanticVersion
 
-    def __updateVersionFile(self, normalizedBuildNumber: str, semanticVersion: SemanticVersion):
+    def __updateVersionFile(self, normalizedBuildNumber: str, semanticVersion: SemanticVersion) -> SemanticVersion:
         """
         Updates the version text file
 
@@ -182,36 +244,42 @@ class TravisCli:
         """
         semanticBuildNbr      = semanticVersion.toBuildNumber(normalizedBuildNumber)
         semanticVersion.build = semanticBuildNbr
-        click.secho(f'New Version: {semanticVersion}')
+        secho(f'New Version: {semanticVersion}')
 
-        writeDescriptor: TextIO = click.open_file(self._versionFile, mode='w')
+        writeDescriptor: TextIO = open_file(self._versionFile, mode='w')
         writeDescriptor.write(semanticVersion.__str__())
         writeDescriptor.close()
 
+        return semanticVersion
 
-@click.command()
-@click.option('-c', '--count',     default=5,      type=click.INT, help='Number builds to check.')
-@click.option('-r', '--repo-slug', required=True,  help='something thing like hasii2011/PyUt.')
-@click.option('-f', '--file',      default='travisci/resources/version.txt', type=click.Path(exists=True),  help='Relative location of version text file')
-@click.option('--major',    required=False, type=click.INT, help='Change the major number to the specified one')
-@click.option('--minor',    required=False, type=click.INT, help='Change the minor number to the specified one')
-@click.option('--patch',    required=False, type=click.INT, help='Change the patch number to the specified one')
-@click.version_option(version='0.1', message='%(version)s')
-def commandHandler(count: int, repo_slug: str, file: TextIO, major: int, minor: int, patch: int):
 
-    click.clear()
-    click.echo(click.style(f"Starting {TravisCli.MADE_UP_PRETTY_MAIN_NAME}", reverse=True))
+@command()
+@option('-b', '--build-count',     default=5,      type=INT, help='Number builds to check.')
+@option('-r', '--repo-slug', required=True,  help='something thing like hasii2011/PyUt.')
+@option('-f', '--file',      default='travisci/resources/version.txt', type=clickPath(exists=True),  help='Relative location of version text file')
+@option('--major-version',    required=False, type=INT, help='Change the major number to the specified one')
+@option('--minor-version',    required=False, type=INT, help='Change the minor number to the specified one')
+@option('--patch-version',    required=False, type=INT, help='Change the patch number to the specified one')
+@version_option(version='0.1', message='%(version)s')
+def commandHandler(build_count: int, repo_slug: str, file: TextIO, major_version: int, minor_version: int, patch_version: int):
+
+    clickClear()
+    clickEcho(style(f"Starting {TravisCli.MADE_UP_PRETTY_MAIN_NAME}", reverse=True))
 
     travisCmd: TravisCli = TravisCli()
 
-    travisCmd.buildCount   = count
+    travisCmd.buildCount   = build_count
     travisCmd.repoSlugName = repo_slug
     travisCmd.versionFile  = file
 
-    ctx = click.get_current_context()
-    if (major and minor) or (major and patch) or (minor and patch):
-        click.echo('You can only specify one of --major, --minor, or --patch')
+    ctx: Context = get_current_context()
+    if (major_version and minor_version) or (major_version and patch_version) or (minor_version and patch_version):
+        clickEcho('You can only specify one of --major-version, --minor-version, or --patch-version')
         ctx.exit(1)
+
+    travisCmd.majorVersion = major_version
+    travisCmd.minorVersion = minor_version
+    travisCmd.patchVersion = patch_version
 
     # Launch travisCmd
     travisCmd.runCommand()
