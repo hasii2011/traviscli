@@ -1,6 +1,5 @@
 import pathlib
 from setuptools import setup
-from setuptools import find_packages
 
 # The directory containing this file
 HERE = pathlib.Path(__file__).parent
@@ -16,8 +15,15 @@ setup(
     long_description=README,
     long_description_content_type="text/markdown",
     url="https://github.com/hasii2011/travisci-cli",
-    packages=find_packages(),
+    packages=[
+        'travisci',
+        'travisci.exceptions'
+    ],
     include_package_data=False,
     package_data={'travisci.resources': ['*.json', 'travisci/resources/*.json']},
-    install_requires=['click', 'PyTravisCI']
+    install_requires=['click', 'PyTravisCI'],
+    entry_points='''
+        [console_scripts]
+        traviscli=travisci.TravisCli:commandHandler
+    ''',
 )

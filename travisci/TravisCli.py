@@ -24,7 +24,6 @@ from PyTravisCI.resource_types.repository import Repository
 
 import click
 
-
 from travisci.Preferences import Preferences
 from travisci.SemanticVersion import SemanticVersion
 
@@ -32,12 +31,10 @@ from travisci.SemanticVersion import SemanticVersion
 class TravisCli:
 
     JSON_LOGGING_CONFIG_FILENAME: str = "loggingConfiguration.json"
-
     MADE_UP_PRETTY_MAIN_NAME:     str = "TravisCli"
 
     RESOURCES_PACKAGE_NAME: str = 'travisci.resources'
     RESOURCES_PATH:         str = f'travisci{osSep}resources'
-
     RESOURCE_ENV_VAR:       str = 'RESOURCEPATH'
 
     def __init__(self):
@@ -64,30 +61,7 @@ class TravisCli:
         repository: Repository = travisCI.get_repository(self._repoSlugName)
         repoBuilds: Builds     = repository.get_builds(params=params)
 
-        highestBuildNumber: str = '0'
-        for build in repoBuilds:
-
-            if int(build.number) > int(highestBuildNumber):
-                highestBuildNumber = build.number
-
-        self.logger.info(f'{highestBuildNumber=}')
-
-        readFD:          TextIO          = open(self._versionFile, "r")
-        semanticVersion: SemanticVersion = SemanticVersion(readFD.read())
-        readFD.close()
-
-        print(f'Old Version: {semanticVersion}')
-
-        highestBuildNumber = f'+.{highestBuildNumber}'
-        semanticBuildNbr = semanticVersion.toBuildNumber(highestBuildNumber)
-        semanticVersion.build = semanticBuildNbr
-
-        print(f'New Version: {semanticVersion}')
-
-        writeFD: TextIO = open(self._versionFile, "w")
-
-        writeFD.write(semanticVersion.__str__())
-        writeFD.close()
+        self._updateBuildNumber(repoBuilds)
 
     @property
     def buildCount(self) -> int:
@@ -112,6 +86,15 @@ class TravisCli:
     @versionFile.setter
     def versionFile(self, file: Path):
         self._versionFile = file
+
+    def _updateBuildNumber(self, repoBuilds: Builds):
+
+        highestBuildNumber: str             = self.__getHighestBuildNumber(repoBuilds)
+        semanticVersion:    SemanticVersion = self.__getCurrentVersion()
+
+        highestBuildNumber = f'+.{highestBuildNumber}'      # Normalize it
+
+        self.__updateVersionFile(highestBuildNumber, semanticVersion)
 
     def _listRepositories(self, travisCI):
         repositories: Repositories = travisCI.get_repositories()
@@ -155,19 +138,80 @@ class TravisCli:
 
         return fqFileName
 
+    def __getHighestBuildNumber(self, repoBuilds: Builds) -> str:
+        """
+        Searches the input list of repository builds and determines the largest build number
+
+        Args:
+            repoBuilds: The Travis CI repository builds
+
+        Returns:  The string version of the build number
+        """
+        highestBuildNumber: str = '0'
+
+        for build in repoBuilds:
+
+            if int(build.number) > int(highestBuildNumber):
+                highestBuildNumber = build.number
+
+        self.logger.info(f'{highestBuildNumber=}')
+
+        return highestBuildNumber
+
+    def __getCurrentVersion(self) -> SemanticVersion:
+        """
+        Reads the version text file that is in semantic version format
+
+        Returns:  The semantic version object that represents the current version stored in the text file
+        """
+        readDescriptor:  TextIO          = click.open_file(self._versionFile, mode='r')
+        semanticVersion: SemanticVersion = SemanticVersion(readDescriptor.read())
+        readDescriptor.close()
+
+        click.secho(f'Old Version: {semanticVersion}')
+
+        return semanticVersion
+
+    def __updateVersionFile(self, normalizedBuildNumber: str, semanticVersion: SemanticVersion):
+        """
+        Updates the version text file
+
+        Args:
+            normalizedBuildNumber:  String set up as 'proper' build number
+            semanticVersion:        The semantic version from the old text file
+        """
+        semanticBuildNbr      = semanticVersion.toBuildNumber(normalizedBuildNumber)
+        semanticVersion.build = semanticBuildNbr
+        click.secho(f'New Version: {semanticVersion}')
+
+        writeDescriptor: TextIO = click.open_file(self._versionFile, mode='w')
+        writeDescriptor.write(semanticVersion.__str__())
+        writeDescriptor.close()
+
 
 @click.command()
-@click.option('-c', '--count',     default=1,      help='Number builds to return.')
+@click.option('-c', '--count',     default=5,      type=click.INT, help='Number builds to check.')
 @click.option('-r', '--repo-slug', required=True,  help='something thing like hasii2011/PyUt.')
 @click.option('-f', '--file',      default='travisci/resources/version.txt', type=click.Path(exists=True),  help='Relative location of version text file')
-def main(count: int, repo_slug: str, file: TextIO):
+@click.option('--major',    required=False, type=click.INT, help='Change the major number to the specified one')
+@click.option('--minor',    required=False, type=click.INT, help='Change the minor number to the specified one')
+@click.option('--patch',    required=False, type=click.INT, help='Change the patch number to the specified one')
+@click.version_option(version='0.1', message='%(version)s')
+def commandHandler(count: int, repo_slug: str, file: TextIO, major: int, minor: int, patch: int):
 
-    print(f'{count=} {repo_slug=}')
+    click.clear()
+    click.echo(click.style(f"Starting {TravisCli.MADE_UP_PRETTY_MAIN_NAME}", reverse=True))
+
     travisCmd: TravisCli = TravisCli()
 
     travisCmd.buildCount   = count
     travisCmd.repoSlugName = repo_slug
     travisCmd.versionFile  = file
+
+    ctx = click.get_current_context()
+    if (major and minor) or (major and patch) or (minor and patch):
+        click.echo('You can only specify one of --major, --minor, or --patch')
+        ctx.exit(1)
 
     # Launch travisCmd
     travisCmd.runCommand()
@@ -175,5 +219,4 @@ def main(count: int, repo_slug: str, file: TextIO):
 
 if __name__ == "__main__":
 
-    print(f"Starting {TravisCli.MADE_UP_PRETTY_MAIN_NAME}")
-    main()
+    commandHandler()
