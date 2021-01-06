@@ -17,10 +17,11 @@ setup(
     url="https://github.com/hasii2011/travisci-cli",
     packages=[
         'travisci',
-        'travisci.exceptions'
+        'travisci.exceptions',
+        'travisci.resources'
     ],
-    include_package_data=False,
-    package_data={'travisci.resources': ['*.json', 'travisci/resources/*.json']},
+    package_data={'travisci.resources': ['loggingConfiguration.json', 'loggingConfiguration.json']},
+    include_package_data=True,
     install_requires=['click', 'PyTravisCI'],
     entry_points='''
         [console_scripts]
