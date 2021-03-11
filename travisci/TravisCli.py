@@ -255,14 +255,16 @@ class TravisCli:
 
 @command()
 @option('-b', '--build-count',     default=5,      type=INT, help='Number builds to check.')
-@option('-r', '--repo-slug', required=True,  help='something thing like hasii2011/PyUt.')
-@option('-f', '--file',      default='travisci/resources/version.txt', type=clickPath(exists=True),  help='Relative location of version text file')
-@option('--major-version',    required=False, type=INT, help='Change the major number to the specified one')
-@option('--minor-version',    required=False, type=INT, help='Change the minor number to the specified one')
-@option('--patch-version',    required=False, type=INT, help='Change the patch number to the specified one')
-@version_option(version='0.1', message='%(version)s')
+@option('-r', '--repo-slug',   required=True,  help='something thing like hasii2011/PyUt.')
+@option('-f', '--file',        default='travisci/resources/version.txt', type=clickPath(exists=True),  help='Relative location of version text file')
+@option('--major-version',     required=False, type=INT, help='Change the major number to the specified one')
+@option('--minor-version',     required=False, type=INT, help='Change the minor number to the specified one')
+@option('--patch-version',     required=False, type=INT, help='Change the patch number to the specified one')
+@version_option(version='0.3.0', message='%(version)s')
 def commandHandler(build_count: int, repo_slug: str, file: TextIO, major_version: int, minor_version: int, patch_version: int):
-
+    """
+    Use this command to get the Travis CI build number of your project.  Assumes you are using Semantic Versioning
+    """
     clickClear()
     clickEcho(style(f"Starting {TravisCli.MADE_UP_PRETTY_MAIN_NAME}", reverse=True))
 

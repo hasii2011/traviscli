@@ -4,5 +4,5 @@ __pycache__/
 /html/
 build/
 dist/
-/venv-pyenv-3.9.1-dev/
+/pyenv-venv-3.9.1/
 traviscli.egg-info/
