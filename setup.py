@@ -9,7 +9,7 @@ README = (HERE / "README.md").read_text()
 
 setup(
     name="traviscli",
-    version="0.3.0",
+    version="0.3.1",
     author_email='Humberto.A.Sanchez.II@gmail.com',
     description='A build help tool',
     long_description=README,

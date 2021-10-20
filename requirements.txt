@@ -1,5 +1,6 @@
 setuptools~=54.1.1
 twine~=3.3.0
 wheel~=0.36.1
+build~=0.7.0
 click~=7.1.2
 PyTravisCI~=2.0.0
