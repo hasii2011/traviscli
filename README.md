@@ -5,5 +5,52 @@
 
 [![forthebadge made-with-python](http://ForTheBadge.com/images/badges/made-with-python.svg)](https://www.python.org/)
 
-This is a simple CLI for me to update my version.txt file with a build number.  More to come
+##Introduction
+This is a simple CLI that allows you to update a version.txt file with a build number.
     
+##How to use
+
+```commandline
+traviscli --help
+Usage: traviscli [OPTIONS]
+
+  Use this command to get the Travis CI build number of your project.  Assumes
+  you are using Semantic Versioning
+
+Options:
+  -b, --build-count INTEGER  Number builds to check.
+  -r, --repo-slug TEXT       something thing like hasii2011/PyUt.  [required]
+  -f, --file PATH            Relative location of version text file
+  --major-version INTEGER    Change the major number to the specified one
+  --minor-version INTEGER    Change the minor number to the specified one
+  --patch-version INTEGER    Change the patch number to the specified one
+  --version                  Show the version and exit.
+  --help                     Show this message and exit.
+```
+## How to get your TravisCI Application Token
+Go to your `TravisCI Profile-->Settings-->Settings` Tab
+
+For example:
+
+![image info](./images/TravisCI-ApplicationToken.png)
+
+## Where to put it 
+Create a file named `.travis-cli.ini` in your home directory (or where `$HOME` points to)
+
+## Configuration file format
+```ini
+[TRAVISCI]
+travisci_api_token = Your Token goes here
+```
+##Version file format
+
+The version string in your version file should follow the rules for [semantic versioning](https://semver.org)
+
+For example, here is a correctly formatted version string
+
+`6.2.1+.500`
+
+
+
+
+
