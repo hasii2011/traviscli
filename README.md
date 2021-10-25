@@ -5,10 +5,10 @@
 
 [![forthebadge made-with-python](http://ForTheBadge.com/images/badges/made-with-python.svg)](https://www.python.org/)
 
-##Introduction
+## Introduction
 This is a simple CLI that allows you to update a version.txt file with a build number.
     
-##How to use
+## How to use
 
 ```commandline
 traviscli --help
@@ -34,7 +34,7 @@ For example:
 
 ![image info](./images/TravisCI-ApplicationToken.png)
 
-## Where to put it 
+## Where to put configuration token 
 Create a file named `.travis-cli.ini` in your home directory (or where `$HOME` points to)
 
 ## Configuration file format
@@ -42,7 +42,7 @@ Create a file named `.travis-cli.ini` in your home directory (or where `$HOME` p
 [TRAVISCI]
 travisci_api_token = Your Token goes here
 ```
-##Version file format
+## Version file format
 
 The version string in your version file should follow the rules for [semantic versioning](https://semver.org)
 
