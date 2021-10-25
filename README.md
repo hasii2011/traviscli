@@ -8,6 +8,14 @@
 ## Introduction
 This is a simple CLI that allows you to update a version.txt file with a build number.
     
+## Install traviscli in your virtual environment
+This utility is distriburet via pypi](https://pypi.org/project/traviscli/) packages.
+
+Install like this:
+```commandline
+pip3 install traviscli
+```
+
 ## How to use
 
 ```commandline
