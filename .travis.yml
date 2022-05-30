@@ -16,7 +16,7 @@ language: python
 cache: pip
 
 python:
-  - "3.9"
+  - "3.9.12"
 
 # command to install dependencies
 install:
