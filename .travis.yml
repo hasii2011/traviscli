@@ -9,15 +9,14 @@ notifications:
     on_success: change # default: change
     on_failure: always # default: always
 
+dist: bionic
+
 language: python
 
 cache: pip
 
-services:
-  - xvfb
-
 python:
-  - "3.9.9"
+  - "3.9"
 
 # command to install dependencies
 install:
